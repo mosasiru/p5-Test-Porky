@@ -6,8 +6,7 @@ Test::Porky - generate regression tests automatically
 
     use Test::Porky;
 
-    ok_regression(sub { ... }, 'test1');
-    ok_regression($obj->hoge(), 'test2');
+    ok_regression($obj->hoge(), 'hoge.result');
 
 # DESCRIPTION
 
@@ -24,14 +23,9 @@ the result of coderef execution
 
     ok_regression($coderef, $output_file);
 
-or string, number
+or scalar, or object.
 
     ok_regression($string, $output_file);
-
-or object which can be encoded to JSON.
-
-    ok_regression($hashref, $output_file);
-    ok_regression($arrayref, $output_file);
     ok_regression($obj, $output_file);
 
 if third argument is undefined, $output\_file is also a test\_name.

@@ -11,14 +11,14 @@ our @EXPORT = qw(ok_regression);
 
 use File::Slurp;
 use Test::Differences;
-use JSON::XS;
 use Data::Util qw(:check);
+use Data::Dumper;
 
 use base qw(Test::Builder::Module);
 
 my $CLASS = __PACKAGE__;
 
-my $json = JSON::XS->new;
+#my $json = JSON::XS->new;
 
 sub ok_regression {
     my ($tested, $file, $test_name) = @_;
@@ -26,7 +26,10 @@ sub ok_regression {
 
     my $output = eval {
         my $res = (is_code_ref $tested) ? &$tested : $tested;
-        (is_string $res) ? $res : $json->encode($res);
+        local $Data::Dumper::Indent   = 1;
+        local $Data::Dumper::Terse    = 1;
+        local $Data::Dumper::Deparse  = 1;
+        (is_string $res) ? $res : Dumper $res;
     };
     my $tb = $CLASS->builder;
     if ($@) {
@@ -67,8 +70,7 @@ Test::Porky - generate regression tests automatically
 
     use Test::Porky;
 
-    ok_regression(sub { ... }, 'test1');
-    ok_regression($obj->hoge(), 'test2');
+    ok_regression($obj->hoge(), 'hoge.result');
 
 =head1 DESCRIPTION
 
@@ -84,14 +86,9 @@ the result of coderef execution
 
     ok_regression($coderef, $output_file);
 
-or string, number
+or scalar, or object.
 
     ok_regression($string, $output_file);
-
-or object which can be encoded to JSON.
-
-    ok_regression($hashref, $output_file);
-    ok_regression($arrayref, $output_file);
     ok_regression($obj, $output_file);
 
 if third argument is undefined, $output_file is also a test_name.
