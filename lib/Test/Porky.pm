@@ -20,9 +20,25 @@ my $CLASS = __PACKAGE__;
 
 #my $json = JSON::XS->new;
 
+my ($read_cb, $write_cb) = @_;
+sub import {
+    my ($package, %args) = @_;
+
+    $package->export_to_level(1);
+
+    $read_cb  = $args{read_cb} || sub {
+        my ($file_name) = @_;
+        read_file($file_name, binmode => ':utf8');
+    };
+    $write_cb = $args{write_cb} || sub {
+        my ($file_name, $output) = @_;
+        write_file($file_name, +{ binmode => ':utf8' }, $output, );
+    };
+}
+
 sub ok_regression {
-    my ($tested, $file, $test_name) = @_;
-    $test_name ||= $file;
+    my ($tested, $file_name, $test_name) = @_;
+    $test_name ||= $file_name;
 
     my $output = eval {
         my $res = (is_code_ref $tested) ? &$tested : $tested;
@@ -39,23 +55,23 @@ sub ok_regression {
     $tb->note($output);
 
     # generate the output files if required
-    if ( ! -e $file || $ENV{TEST_PORKY_INIT} ) {
+    if ( ! -e $file_name || $ENV{TEST_PORKY_INIT} ) {
         eval {
-            write_file($file, +{ binmode => ':utf8' }, $output, )
+            $write_cb->($file_name, $output);
         };
         if ($@) {
-            return $tb->ok( 0, sprintf('actual write failed: %s', $file) );
+            return $tb->ok( 0, sprintf('actual write failed: %s (%s)', $file_name, $@) );
         }
         return $tb->skip(sprintf('(%s is generated)', $test_name));
     }
 
     # compare the files
-    my $content = eval { read_file($file, binmode => ':utf8') };
+    my $content = eval { $read_cb->($file_name) };
     if ($@) {
-        return $tb->ok( 0, sprintf('%s: cannot open %s', $test_name, $file) )
+        return $tb->ok( 0, sprintf('%s: cannot open %s (%s)', $test_name, $file_name, $@) )
     };
     eq_or_diff( $output, $content, $test_name );
-    return $output eq $file;
+    return $output eq $content;
 }
 1;
 __END__
